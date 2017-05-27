@@ -1,0 +1,591 @@
+---
+title: "Intro to R and testing genetic interactions with ANOVA"
+author: "R Clay Wright"
+date: "5/23/2017"
+output:
+  html_document:
+    toc: yes
+  word_document:
+    reference_docx: Intro_to_R_styles.docx
+    toc: yes
+---
+```{r setup, include=FALSE, fig.width=7}
+knitr::opts_chunk$set(comment = '#>')
+```
+
+#Using this document  
+The goal of this particular tutorial is to teach you how to efficiently and effectively use RStudio to teach yourself how to do anything you may want to do with R. If you would like a more in-depth R tutorial check out [Code School](http://tryr.codeschool.com/). If you're new to R check out these nifty [cheatsheets](https://www.google.com/webhp?sourceid=chrome-instant&rlz=1C5CHFA_enUS686US686&ion=1&espv=2&ie=UTF-8#q=r+cheat+sheet). These are great references to download and have available when coding.  
+
+Keep in mind while navigating this tutorial that you are supposed to be experimenting with R, making mistakes, causing errors and figuring out why. Nothing you do in RStudio will break your computer. Coding is a trial-and-error process, especially as you are learning. Try anything! See what happens! Learn from everything!    
+
+#####???Question???
+Throughout the tutorial you will find several sections with this label followed by questions for you to answer. The answers to these questions or the methods by which you can find the answers have already been covered in the above sections. Replace the *answer here* text with your answer along with any code you may have used to arrive at that answer and or a plot you have produced.  
+
+The text within this tutorial is formatted to differentiate code from dialog. `text that looks like this` is R code or keyboard commands. You can copy and paste this code into an R console and execute it. Within multiline blocks of code functions will be colored blue, comments will be colored green, strings will be teal and Booleans (True or False values) will be in red. If you don't know what any of these terms mean yet, don't worry, we'll get to them. 
+
+In some cases the output from the code will be included in blocks of code. This output will be prefixed with `#>`. 
+
+Let's get started!
+
+#The R programming language
+R is a programming language for statistical computing and graphics generation. R is based on an older statistical computing language called S. It is freely available and open source. There is a huge community of people writing and sharing their R code. R can be downloaded for your personal computer [here](http://cloud.r-project.org). 
+
+R is a line-oriented language, meaning each line of code is run or interpreted independently (if you are familiar with C/C++ you will know each bit of code must be followed by a semicolon). 
+
+###Why use R, when I already know Excel?
+>In addition to being a great free and open-source software, R provides much more flexibility than Excel. R can also read nearly any type of data without changing it (often Excel will convert data that might look like dates or scientific notation, whether you like it or not). Probably the most important reason to use R is transparency and reproducibility. In Excel, it is often very difficult to follow someones calculations as steps may be spread across different cells. Hence, Excel lacks transparency. In R each calculation is perfectly described by a line of code. This allows us to write a set of analysis code that can easily reproduce the same analysis with new data. We can also easily trace any changes made to the original dataset, or never change the original dataset but simply load it into memory and run the analysis code whenever we want to use it. In large experiments involving many collaborators, using consistent datasets and analysis scripts are very important.  
+
+Another of the many great things about R is its beautiful integrated development environment (IDE, a program that provides a clean work space and numerous tools to assist you in coding). A good IDE can make learning a language much easier, and even if you are an experienced coder a good IDE can make you much more efficient.
+
+##RStudio 
+This wonderful IDE for R is called RStudio. For your personal computer it can be downloaded [here](http://www.rstudio.com). (You will need to install R before installing RStudio). 
+
+Let's take a look around the RStudio window. 
+
+You will see several panes within the RStudio window.
+
+###The Console pane
+We'll start with the **Console** pane. It is in the bottom-left corner labeled **Console** at the top left. (If the **Source** pane is closed, the **Console** pane may take up the whole left side of the window). The **Console** is essentially an R command line window. You can type in anything following the `>` then press `return` (or `Enter`) and whatever you typed will be interpreted by R and the appropriate output will be returned. R understands all basic algebra as well as logical expressions (aka Boolean expressions, such as 5<7 or True & False = False). Try running the following lines in the console!
+```{r}
+2+2
+9/3
+3^3
+2>3
+2<3
+```
+
+###The Source pane
+In the top left of the screen is the **Source** pane. (If you don't see this pane, create a new `.R` file by pressing `shift + command(or ctrl) + N`, or click the universal 'New Document' icon and select 'R script'). **Source** shows the '.R' files containing the scripts (multiple lines of related code) with which you are currently working. This is where you will spend most of your time building and testing lines of code and then combining them to make scripts for data analysis. 
+
+In addition to being a basic calculator, R interprets functions or variables that can be assigned to and represented by words. Variables (any piece of data of any variety) will be single words possibly followed by a `$` or square brackets `[]` if the variable is a matrix (a two dimensional array of data, where `matrix$y` would return column y and `matrix[x,y]` would return the piece of data in row `x` and column `y`). Functions (blocks of code that perform a specific function) are followed by parentheses containing the arguments/parameters on which that function will operate.
+
+####Variables and Functions 
+>R is an object oriented language. This means we can use R to create abstracted objects that contain data (of any type, shape or size) called variables or procedures/methods (individual blocks of code) called functions. There are numerous functions and datasets included in the base R installation. Also, as an open source language countless programmers in the R community have written useful functions and created useful datasets that are freely available in the form of R-packages (more on these later). You can also write your own! 
+
+The big difference between using RStudio and running R from the command line is that this pane has an auto-complete feature. Try typing `pri` into R-script in the **Source** pane and pressing `tab`. RStudio automatically provides you with a list of all the available functions and variables beginning with 'pri'! 
+
+You can navigate this list using the arrow keys or your mouse. When you select a particular object, RStudio also gives you some information about that object. Navigate down to `print` (if there are multiple, select the one that has {base} at the far right) and press `tab`. You will see that RStudio has completed `print` in the console and added a set of parentheses because `print` is a function, `print()`. Now we can add arguments that this function will operate on, within the parentheses. But what does this function do? To figure out type `?print` in the **Console** and press `return`. This opens the documentation for this function in the **Help** pane. A `?` before any function name, or passing a function name to the `help()` function will do the same.
+
+###The Help pane
+This pane is essentially a browser window for R documentation. You can also search for functions or variables in R and all of the installed packages on your computer using the search box at the top. You can search within a documentation page using the *Find in Topic* box.
+
+Using this pane you should be able to answer almost any question you have about any R function. 
+
+All R documentation follows standard formatting. **Description** is pretty self explanatory. **Usage** demonstrates how you use the function, sometimes with specifics for different variable types. For `print` this shows us that `print` takes the input argument `x` (an argument is just variable that is used in a function). If `x` is a 'factor' or a 'table', `print` will also take some additional arguments. In the **Usage** section the default value of each argument is listed (e.g. `FALSE` is the default value for argument `quote`). A description of each argument is listed below in the **Arguments** section. **Value** is the type of data returned by the function. There are a few other self-explanatory sections and finally **Examples**. This is often one of the most useful sections as it shows you how to use the function. The code in **Examples** can be copied and pasted into the console and run. 
+
+###The Files/Plots/Packages/Help/Viewer pane
+The **Help** pane contains additional tabs that can also be quite helpful. **Files** allows you to navigate through folders on your computer and open files. **Plots** shows you the most recent plot your code has produced and allows you to save it. **Packages** allows you to install and load packages into memory. Packages are bundles of code that other people have written and shared with the community (more about packages later). 
+
+***
+#####???Questions???
+Choose any function (type in your favorite letter and press `tab` to complete the function name) and open its documentation in the **Help** pane. What function did you choose? 
+*answer here*
+
+Copy the **Usage** section of your chosen function below.  
+*answer here*
+
+***
+
+Additionally, there is a search engine specific to R resources including the documentation, blogs, books and questions users have asked on discussion boards. This invaluable resource is at [Rseek.org](http://rseek.org). This is especially helpful if you want to find a function to perform a specific task. 
+
+####Comments in code
+
+>To take notes about what your code does or how to use your code you can make "comments" by prepending any text with a `#`. This can also be useful to prevent a line code from being executed.
+
+####OK, back to the Source pane...
+You should have `print()` in there now.   
+Put your cursor in the middle of the parentheses and press `tab`. RStudio will feed you all of the arguments of this function using auto-complete! Press `tab` again and `x = ` will appear in the parentheses. Type `"hello world"` and press `command/ctrl + return/enter`. This will copy your line of code into the console and execute it. Amazing! Your first line of R code worked, hopefully...
+
+```{r}
+print(x = "hello world") # prints hello world in the console
+```
+
+Take note that if you are missing the quotes around `hello world` R will look for a variable named `hello` and return an error.  
+
+If your code didn't work, try to fix it and run it again. 
+
+`command + return` (`ctrl + enter` on Windows machines) can be used to execute a whole line or any selected code.
+
+Now just highlight `x = "hello world"` within the `print(x = "hello world")` line and press `command + return` (or `ctrl + enter`). This will just execute the highlighted text. If everything worked properly, you have just created your first variable object in R!
+
+###The Environment pane
+See, over on the top right next to `x` (the variable object name) is "hello world" (the value assigned to that variable). You can now execute just `print(x)`, and you will get `[1] "hello world"`! The **Environment** pane shows all of the objects you have created or stored in memory. You can view data sets or functions by clicking on them, but at the moment we only have the simple variable `x`. Don't worry, we'll practice this later.
+
+##Variables and data types
+You can create objects (variables~values, large data structures~think spreadsheets and databases, and functions) using the `=`, `<-` or `->` operators. You can see what type of data (or data type) a variable is using the `class` function. Go ahead, try `class(x)`. Data in R can be of several different, basic types:
+
+Data Type |aka        |Example
+----------|-----------|---------
+Logical   |Boolean    |TRUE, FALSE	
+Numeric   |float      |42, 3.14, 	
+Character |string     |'a' , "good", "TRUE", '23.4'
+Integer   |           |2L, 34L, 0L	
+Complex   |           |3 + 2i	
+Raw	      |hexadecimal|"Hello" is stored as 48 65 6c 6c 6f 
+
+###Vectors
+Vectors in R are simply ordered lists of values. These values can be of any type (strings, numerics, Boolean, etc), but they must all be of the same type, or R will force them to be the same. We can construct vectors using the `c()` function. 
+
+Let's run through a quick example:
+```{r}
+string_vector <- c('plant', 'genotype')
+string_vector
+```
+
+***
+#####???Question???
+What is `c` abbreviating? (i.e. what is the title of the `c()` function?)
+*answer here*
+
+What are the arguments that you can pass to `c()`?
+*answer here*
+
+***
+
+Now we have a vector of strings. We can access the individual elements (the values we put in our vector) using the square bracket operator.
+```{r}
+string_vector[1]
+string_vector[2]
+#Note that the indices begin at 1 in R!!!
+string_vector[0]
+```
+
+We can also change elements or add elements to the vector using the bracket operator.
+
+```{r}
+string_vector[2] <- 'phenotype'
+string_vector[3] <- 'root_length'
+string_vector
+string_vector[4] <- FALSE
+string_vector
+```
+
+***
+#####???Question???  
+What happened to FALSE (is it a Boolean)? 
+*answer here*
+
+Write a block of code to test what would happen if we instead added a character string to a vector of logical values (i.e. make a new variable containing a few Boolean values, then add a string to that vector)! What happens? 
+*answer here*
+```{r, eval = F, echo = F}
+bools <- c(FALSE, TRUE)
+bools[3] <- 'hello'
+bools
+```
+***  
+
+We can also do mathematical or logical operations on entire vectors.
+```{r}
+string_vector == FALSE
+
+another_vector <- c(1, 2, 3, 4, 5)
+6*another_vector
+another_vector^2
+another_vector > 2
+```
+
+
+### Matrices, Arrays and Lists
+**Matrices** are two dimensional data sets and **Arrays** are N-dimensional data sets. Like vectors these must be made of a single data type. For more info `?matrix` and `?array`.
+
+Lists are more complex data structures that are similar to vectors but allow multiple data types. Lists can contain vectors as elements and even other lists! This makes them potentially N-dimensional but clunky to work with. You might encounter them if you use R in the future. 
+For more info `?list`.
+
+###Data frames
+Variables in R are not limited to just strings or integers or even matrices. You can store and operate on entire spreadsheets with columns of defined data types, using what R calls 'data frames'. Data frames have columns that are made of vectors. The data frame is one of the most fundamental data structures used in R. `?data.frame` provides a wealth of knowledge about data frames, but let's just go ahead and make one! Run the following code.
+```{r}
+L3 <- LETTERS[1:3]
+fac <- sample(L3, 10, replace = TRUE)
+d <- data.frame(x = 1, y = 1:10, fac = fac)
+#notice how the columns of the data frame can be named using '=', just as if we were creating individual vectors
+d
+class(d)
+```
+***
+#####???Questions???  
+What is `LETTERS`? What is L3?
+*answer here*
+
+What does `sample` do?
+*answer here*
+
+What does setting the `replace` argument of `sample` to `TRUE` do? Try `sample(L3, 10, replace = FALSE)`
+
+***
+Now we have a data frame `d` with 10 rows and 3 columns. You can retrieve individual columns using the `$` operator. Try it, `d$fac`!. Wait a minute, why is this no longer a column? The columns of a data frame are actually just vectors. 
+
+***
+#####???Question???
+What class of data is `d$fac`? 
+*answer here*
+
+***
+
+You can also create new columns using the `$` operator. For example we could make a column called `new_column` that contains `"new_column"` by executing `d$new_column <- "new_column"`.
+
+####Factors
+>Factors used to be an efficient way of storing large vectors of repetitive discrete or categorical data. Factors do this by translating the potentially long individual pieces of data into integers, using a table called levels. Try `levels(d$fac)`. This gives us a list of all the unique possible values in `d$fac`. R creates a key (1 = A, 2 = B, 3 = C) to read and write this factor. In this way long level values, like sentences, or large datasets, like thousands of lines, are compressed. To see the compressed version of `d$fac` we can use `as.integer(d$fac)`. R now stores large data structures by indexing values like this regardless of whether it's a factor or not. Despite this fact there are still some useful features of factors. For example, if we are adding a dataset from a new replicate of an experiment to an existing dataset, columns that are factors will only allow us to add values that match our existing levels. This will often help you find typos in your dataset. Additionally, some functions require factor variables, like the ANOVA functions we will use later. 
+>
+>Giving `?factor` a look, you will see that we can also assign a particular order to the levels of a factor. This can be handy for ordering variables when plotting. We can also assign labels to the levels, just in case your level names are too abstracted to be understandable. 
+>
+>However when manipulating data frames containing factors you must be careful because some functions may interpret factors as their integer values! We could also avoid creating a factor in our data frame and just keep this column as characters by including `stringsAsFactors = F` in our call to `data.frame()`.
+
+Going back to our data frame `d`, similar to vectors we can access rows, columns and elements of the data frame using the square bracket operator. I'll suppress the output below and let you run these examples yourself. 
+```{r, eval = F}
+#get the first row of d
+d[1,]
+#get the first column of d
+d[,1]
+#get the column named 'fac'
+d[,'fac']
+#or
+d[['fac']]
+#or (most efficient and readable)
+d$fac
+#get the element in the 5th row and 3rd column
+d[5,3]
+```
+We can also perform calculations or other operations on the elements of a data frame.
+```{r, eval = F}
+d[,2] + 1
+d[[2]] + 1
+d[,2] * 2
+#similarly for logical operations, note that logical 'is equivalent to' is '=='
+d[,3] == 'B'
+d$y <= 5
+
+#we can also use functions to perform complex calculations
+mean(d$y)
+median(d$y)
+sum(d$y)
+```
+Just like with vectors we can change elements or add elements to a data frame. 
+
+***
+#####???Question???
+How would you add a column to `d` with the integer values representing `d$fac`? 
+*answer here*
+
+What is the mean of your new column of `d`? Copy the code you used.
+*answer here*
+
+What is the median or your new column of `d`?  Copy the code you used.
+*answer here*
+
+What is the sum of your new column?  Copy the code you used.
+*answer here*
+
+What fraction of the sum of your new column is each row's value? Make a new column for `d` showing this fraction. Copy the code you used.
+*answer here*
+
+***
+
+## Saving and reading data
+Once we are done manipulating data in R we often want to save the data for safe keeping or to share with our collaborator or boss. To save data we can use `write` of `save` functions of which there are several varieties. For dataframes, we generally want to save as a `.csv` file using the `write.csv` function. 
+```{r}
+# save d as "d.csv"
+write.csv(d, "d.csv")
+```
+
+But what about if we want to read a `.csv` file in to R? To do this we will use the `read.csv` function. We'll have to assign the results of this function to a variable. 
+```{r}
+d <- read.csv("d.csv")
+```
+So using this function we can read in any data after saving it as a `.csv` in Excel. If we don't know the exact path of our dataset but would like to bring up a file browser window to choose it we can use the `file.choose` function.
+```{r, eval=FALSE}
+d <- read.csv(file.choose())
+```
+
+
+
+#Data analysis and visualization  
+
+This lesson in Basic statistics focuses and extends on an example originally published in [Brady et al. 2015](https://www.ncbi.nlm.nih.gov/pubmed/26220933). Read through the introduction of this paper and come back when you're at the "ANOVA PROPERLY TESTS GENETIC INTERACTIONS" section.
+
+##ANOVA PROPERLY TESTS GENETIC INTERACTIONS
+
+Let's simulate an experiment in which we want to determine how two genes in a gene family interact to contribute to a particular phenotype. These genes could be redundant or interact in some epistatic manner. To figure this out we will need to measure the phenotype of interest for the two single mutants, the wild type, and the double mutant. 
+
+First, we will simulate data by drawing quantitative phenotype values from random normal distributions and then compile these random values and associated labels into a data frame. I will pick some means and standard deviations for the normal distributions from thin-air for now. Feel free to come back later and change these values to see how differences in means and standard deviations will affect the outcomes. 
+##Experiment 1
+```{r}
+# Draw 3 measurements from a random normal distribution for each plant line
+WT=rnorm(3, mean=100, sd=10) # WT genotype
+M1=rnorm(3, mean=85, sd=10)  # Single mutant in Gene 1
+M2=rnorm(3, mean=85, sd=10)  # Single mutant in Gene 2
+DM=rnorm(3, mean=70, sd=10)  # Double mutant in Gene 1 and Gene 2
+
+# Create a dataframe with columns for the status of each gene, that this is the first experiment, and the measurement of phenotype 
+# Create a column for the status of gene 1
+# 3 wild-types, 3 single mutants in Gene 1, 3 single mutants in Gene 2, 3 double mutants
+M1G <- c("WT", "WT", "WT", "M1", "M1", "M1", "WT", "WT", "WT", "M1", "M1", "M1")
+# Create a column for the status of gene 2
+M2G <- c("WT", "WT", "WT", "WT", "WT", "WT", "M2", "M2", "M2", "M2", "M2", "M2") 
+Exp <- c("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1")
+# Create a column of the simulated phenotype measurements that we randomly drew above
+Phen <- c(WT, M1, M2, DM)
+Rep1 <- data.frame(Exp,M1G,M2G,Phen)
+Rep1
+```
+
+Note that the values you drew will be different from those above and different from everyone else.
+Now we also need to convert each of these independent variables from strings to factors.
+
+```{r}
+class(Rep1$M1G)
+
+Rep1$M1G <- factor(Rep1$M1G) 
+Rep1$M2G <- factor(Rep1$M2G) 
+Rep1$Exp <- factor(Rep1$Exp)
+```
+
+Now that we have our data frame set up we can visualize our data and test our hypothesis. 
+
+First, let's plot the data to get an idea of what they look like
+
+###Plotting with ggplot2
+
+The `ggplot2` package provides a very powerful and intuitive (once you get the hang of it) way of visualizing data. This can help us present this data in the most clear and understandable way. But first, we will need to download and install this package.
+
+####Packages
+
+There are three places where R packages are available:  
+1. [CRAN](http://cran.r-project.org/web/packages/) contains a huge variety of general packages,  
+2. [bioConductor](http://bioconductor.org/) contains packages related to high throughput biological (mostly -omics) data,  
+3. Packages in development may be available from code repositories such as [GitHub](http://github.com), [Bitbucket](http://bitbucket.org) or others. 
+
+```{r, eval= F}
+#install a package from CRAN (if you exclude 'repos' it will give you a list and ask you to select a repository server)
+install.packages('ggplot2')
+#before using the package we must load it into our workspace
+library('ggplot2')
+
+#we will also need the ‘dplyr’,'car' and 'agricolae' packages
+install.packages('plyr')
+library('plyr') 
+install.packages('dplyr')
+library('dplyr') 
+install.packages("car")
+library("car")
+install.packages("agricolae")
+library("agricolae")
+```
+
+The 'gg' in `ggplot2` stands for 'grammar of graphics'. This grammar allows us to map data to visual representations in a manner similar to how language maps words to abstract concepts. The grammar of graphics allows precise control over each item in a graph, and also provides convenient defaults.  The `qplot` function uses these default values to make quick plots. Similar to how grammar of language directs our use of nouns, verbs and adjectives, the grammar of graphics directs our use of aesthetics, geometries and layers.
+
+Within the grammar of graphics aesthetics are visual parameters to which you can map a variable. So for example here, `x`, `y` and `color` are aesthetics to which we want to map the variables genotype and phenotype. If we extend the language grammar metaphor, aesthetics are like nouns, you can have several nouns in a sentence. But we also need a verb to make a sentence, right? The verb-equivalents in the grammar of graphics are called geometries. These geometries are the methods of representing data, e.g. bar plots, scatter plots, and box-and-whisker plots. In `ggplot2` these geometries are created using which always begin with `geom_`, so you can type 'geom' into the **Help** pane and see a list of all the possibilities. In `qplot` we just leave off the `geom_` when specifying the `geom` argument
+
+Let's explore this data a bit using the `qplot` function.
+```{r}
+qplot(x = interaction(M1G, M2G), y = Phen, data = Rep1, color = interaction(M1G, M2G), geom = "point")
+```
+
+***
+#####???Question???  
+What can we say about this data? Write a quick summary of this graph and formulate a hypothesis. Is one gene contributing more to the phenotype than another? Does the double mutant have a more or less severe phenotype than the individual mutants? Do you think the genes interact to contribute to the phenotype?  
+*answer here*
+
+***  
+
+Now, let's formulate that hypothesis as a mathematical model. Generally, we know that we have a response variable that we are measuring, that is a function of some set of predictors. 
+$$response \sim f(predictors)$$
+The ~ here means that this is a hypothetical or approximate relationship between the response and predictors as there are certainly other factors that we cannot predict or error that we cannot account for in our model.
+
+***
+#####???Question???  
+What is the dependent variable in our simulated experiment? This is also known as the response variable and is typically continuous. 
+*answer here* 
+
+What are the independent or predictor variables of that response? These are typically discrete or categorical for ANOVA analysis. 
+*answer here*  
+
+***   
+
+
+$$phenotype \sim f(Gene 1, Gene2)$$
+Expanding this function a bit, we can assess each individual genes functional contribution to the phenotype as well as the extent to which they interact (or interfere) with one another. Therefore, our final model that we would like to test is
+$$Phen \sim M1G + M2G + M1G:M2G$$
+This is called a general linear model. This should remind you of a linear regression analysis from way back in Algebra II. We have written out an equation that we think should fit our data. ANOVA assigns the deviation or error between our model and our data into groups based on the predictors. It does this by comparing the variance between groups of predictors to the variance within groups of predictors. So in this case we want to compare the phenotypic variance between the WT and mutant groups for each gene to the phenotypic variance within the groups. The variance between groups is called the systematic variance and the variance within groups is called the error variance. 
+
+Let's visually explore this ANOVA idea a bit.
+For each genotype we can calculate the mean phenotype and the variance around the mean. This is the "within" group variance. We'll add this to the plot using the `stat_summary` function. We can use the `alpha` aesthetic to change the saturation of the colors to make the mean stand out a bit more. We can also use the 
+```{r}
+
+qplot(interaction(M1G, M2G), y = Phen, data = Rep1, color = interaction(M1G, M2G), alpha = 0.7) + stat_summary(fun.data = "mean_se", alpha = 1)
+```
+
+The "between" group mean and variance is calculated using the mean for each group.
+
+```{r}
+means <- ddply(.data = Rep1, .variables = .(Exp, M1G,M2G), summarize, Phen = mean(Phen))
+means$M1G <- "mean"
+means$M2G <- "mean"
+Rep1means <- rbind(Rep1, means)
+qplot(x = interaction(M1G, M2G), y = Phen, data = Rep1means, alpha = 0.7, color = interaction(M1G, M2G)) + stat_summary(fun.data = "mean_se", alpha = 1)
+```
+
+So each of the first 4 columns represent within group variance, and the fifth column contains the Grand Mean of the means of the first four columns and the variance of the group means about the Grand Mean, representing the between groups variance.
+
+Now let's set this up in the ANOVA framework in R.
+```{r}
+?aov
+Exp1 <- aov(Phen ~ M1G + M2G + M1G:M2G , data=Rep1) 
+summary(Exp1)
+```
+So what does this summary tell us? `Sum Sq` stands for sum of squares. This is the sum of the squared deviation between the groups of the variable. `Mean Sq` is `Sum Sq` divided by the degrees of freedom or `Df` in that variable and is essentially the variance of that variable. The degrees of freedom are the number of groups for that variable minus one. `Residuals` is the within groups variance. 
+
+Now for the comparisons, `F value` is the ratio of the `Mean Sq` of the variable over the `Residuals`. So the larger the `F value` the more the variance between the predictor levels dominates the variance within predictor levels (i.e. the between treatment variance is greater than the sampling variance). So for our experiment a gene with an F value much greater than one indicates that the variance among genotypes is much greater than the variance within genotypes. The Pr(>F), is the probability that the data are consistent with the null hypothesis, which in this case is that the variance between genotypes of gene is not different from the variance within the genotypes. This is referred to as the p-value. So if this p-value is less than the confidence threshold you have set for your experiment (frequently 0.05), you can reject the null hypothesis and conclude that the gene has a significant effect on the phenotype.
+
+However, **we cannot accept the null hypothesis** for those independent variables with p-values greater than our confidence threshold!!! We can only fail to reject the null, meaning we can only say that we don't have enough data to detect an effect on the phenotype. 
+
+Chances are with this first small experiment you don't have enough data to say anything significant about the interaction between gene1 and gene2 (i.e. we don't have enough evidence to reject the null hypothesis). 
+
+Let's repeat the experiment!
+
+##Experiment 2
+
+```{r}
+WT=rnorm(3, mean=100, sd=10)
+M1=rnorm(3, mean=85, sd=10)
+M2=rnorm(3, mean=85, sd=10)
+DM=rnorm(3, mean=70, sd=10)
+Exp <- c("2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2") 
+Phen <- c(WT, M1, M2, DM)
+
+Rep2 <- data.frame(Exp,M1G,M2G,Phen) 
+Rep2$M1G <- factor(Rep2$M1G) 
+Rep2$M2G <- factor(Rep2$M2G) 
+Rep2$Exp <- factor(Rep2$Exp)
+```
+
+ANOVA analysis for trial 2
+
+```{r}
+Exp2 <- aov(Phen ~ M1G + M2G + M1G:M2G , data=Rep2) 
+summary(Exp2)
+```
+What can you conclude from this experiment?
+
+Because all good things come in threes, and the conclusions likely differ between experiments, let's repeat the experiment a third time. 
+
+##Experiment 3
+
+```{r}
+WT=rnorm(3, mean=100, sd=10)
+M1=rnorm(3, mean=85, sd=10)
+M2=rnorm(3, mean=85, sd=10)
+DM=rnorm(3, mean=70, sd=10)
+Exp <- c("3", "3", "3", "3", "3", "3", "3", "3", "3", "3", "3", "3") 
+Phen <- c(WT, M1, M2, DM)
+
+Rep3 <- data.frame(Exp,M1G,M2G,Phen) 
+Rep3$M1G <- factor(Rep3$M1G) 
+Rep3$M2G <- factor(Rep3$M2G) 
+Rep3$Exp <- factor(Rep3$Exp)
+```
+
+ANOVA analysis for trial 3
+
+```{r}
+Exp3 <- aov(Phen ~ M1G + M2G + M1G:M2G , data=Rep3) 
+summary(Exp3)
+```
+
+##Combined ANOVA
+Now we can combine the experiments and control control for trial number effects.
+
+```{r}
+AllExp <- rbind(Rep1, Rep2, Rep3)
+# Notice how we add an Exp variable to the model
+Full <- aov(Phen ~ M1G + M2G + M1G:M2G + Exp , data=AllExp) 
+summary(Full)
+```
+
+### Advanced plotting with ggplot2
+
+Let's plot the full data set and see if the ANOVA results match our visual expectations. This time instead of using `qplot` we'll use the more flexible and powerful `ggplot` function. To do this we create a `ggplot` element that specifies the data and aesthetics. This sets up the axes and legends for the graph. Then we can add geometries to this ggplot element to layer the data and summaries of the data onto the plot.
+
+```{r}
+ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_point(alpha = 0.7) + stat_summary(fun.data = "mean_se", alpha = 1)
+```
+Let's try plotting this as a boxplot as well.
+
+```{r}
+ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot()
+```
+
+Hopefully in the end you will be able to conclude that both gene1 and gene2 have significant effects on the phenotype, but that there is not evidence to suggest that the interaction between the two has a significant effect. Also, we hope the experimental trial doesn't have an effect. 
+
+But what if the experimental trial did have an effect? How could we figure out which trial is different? 
+
+## Post-hoc testing
+
+While the ANOVA summary tells us which independent variables explain a significant amount of the experimental variant, it doesn't allow us to compare the levels of the independent variables. How can we tell if the mutant in gene 1 has a different phenotype from the mutant in gene 2?
+
+To compare group or level means and variances we will need to do what is called a *post hoc* test. One of the most commonly used post hoc tests is Tukey's Honest Significant Difference test. This compares all of the group means in a pairwise manner and corrects the confidence threshold since we are making multiple comparisons. 
+
+```{r}
+tuk <- TukeyHSD(Full)
+tuk
+```
+
+So more than likely, you will see for your full experiment with 3 replications that WT is significantly different from M1 and M2. This is shown in the first two sections of the `TukeyHSD` summary which compare the levels (wildtype vs mutant) of the factors M1G and M2G. The `p adj` is the p-value (adjusted for the multiple comparisons) resulting from the *t*-test comparing the two groups. So if the `p adj` value is less than the accepted confidence level (typically 0.05), then the two compared groups are significantly different from one another. Hopefully, each replication of the experiment will not be significantly different from the others, i.e. the adjusted p-values will be greater than 0.05. We can visualize the differences in the means by plotting the `TukeyHSD` results. This uses base R plotting which is much less user-friendly than ggplot. Don't get bogged down in the code here, just pay attention to the graphs.
+
+```{r}
+par(mfrow = c(2,2), cex = 0.65)
+plot(tuk, las = 1, cex.axis = 0.75) 
+```
+
+This plots the confidence intervals around the difference between the means for each pair of groups. If these confidence intervals intersect zero we cannot conclude that the two groups being compared are significantly different. 
+
+We could also use the `HSD.test` function from the `agricolae` package, which puts the groups into groups that are not significantly different from each other.
+
+```{r}
+library("agricolae")
+HSD.test(y = Full, trt = c("M1G","M2G"), console = TRUE)
+```
+Finally we can add these groups to our graph and make the titles a bit more understandable. We'll add a text geometry to add the post hoc comparisons. Another tricky point is that we have to make sure that the x-axis labels match between our data and our HSD test. To do this we use `gsub` to swap out the colons for periods. 
+```{r}
+HSD.groups <- HSD.test(y = Full, trt = c("M1G","M2G"))$groups
+ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot() + geom_text(data = HSD.groups, mapping = aes(x = gsub(":", ".", trt), y = means, label = M), color = "black")
+```
+
+Now let's change the axis titles. We'll also use a new theme to clean up the plot a bit and get rid of the legend. 
+```{r}
+ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot() + geom_text(data = HSD.groups, mapping = aes(x = gsub(":", ".", trt), y = means, label = M), color = "black") + xlab("genotype (gene1.gene2)") + ylab("root length (mm)") + theme_classic() + theme(legend.position="none")
+```
+
+## Assumptions of ANOVA
+
+Before making any final conclusions we should check and make sure that our data satisfies the assumptions of the F-statistic, and really the assumptions of nearly any statistical test. These are normality (that the groups are normally distributed), *homogeneity of variance* (that the variances are similar for each group) and independence (that each observation is independent of the others, e.g. each measurement was of a different plant). It's not a deal-breaker if our data defies one of these assumptions. There are variations of ANOVA procedures that are robust to certain violations, but these will have to wait for another class.
+
+How do you test these assumptions? 
+
+### Normality
+We can visualize deviations from normality for each group of measurements using `qqnorm`. The tricky thing is that we need to split up our dataframe by groups.
+
+```{r}
+d_ply(.data = AllExp, .variables = .(M1G, M2G), .fun = summarise, qqnorm(Phen))
+# If any of these strongly deviate from a straight line then there may be a violation of normality
+```
+
+We can run the Shapiro-Wilk test to test for deviations from normality. 
+
+```{r}
+ddply(.data = AllExp, .variables = .(M1G, M2G), .fun = summarise, p_value = shapiro.test(Phen)$p.value)
+```
+A significant test indicates that we can reject the null hypothesis that the data is normally distributed. 
+
+### Homogeneity of variance
+The test for homogeneity of variance is called Levene's Test. This tests whether the variance of each group is different from the others, so a significant test would mean that the assumption of homogeneity is violated.  
+
+```{r}
+library('car')
+leveneTest(AllExp$Phen, interaction(AllExp$M1G, AllExp$M2G), center = median)
+```
+
+### Independence
+
+To test for independence we have to think "is there any reason that any measurements might be dependent on another measurement?" Typically this is due to a *repeated-measures design*. This might be that you have measured the same phenotype of different leaves from the same plant, or measured the same leaf at two different times. 
+
+Hopefully with this introduction you can now you can proceed to analyze the data you have collected in lab. Follow the same steps of formulating your hypothesis as a mathematical model, graphing the data, and performing an ANOVA and post hoc test to test your hypothesis. 

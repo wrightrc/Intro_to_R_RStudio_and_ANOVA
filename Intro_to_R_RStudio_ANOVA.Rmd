@@ -3,14 +3,19 @@ title: "Intro to R and testing genetic interactions with ANOVA"
 author: "R Clay Wright"
 date: "5/23/2017"
 output:
-  html_document:
-    toc: yes
   word_document:
     reference_docx: Intro_to_R_styles.docx
+    toc: yes
+  html_document:
     toc: yes
 ---
 ```{r setup, include=FALSE, fig.width=7}
 knitr::opts_chunk$set(comment = '#>')
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(car)
+library(agricolae)
 ```
 
 #Using this document  
@@ -124,12 +129,12 @@ Complex   |           |3 + 2i
 Raw	      |hexadecimal|"Hello" is stored as 48 65 6c 6c 6f 
 
 ###Vectors
-Vectors in R are simply ordered lists of values. These values can be of any type (strings, numerics, Boolean, etc), but they must all be of the same type, or R will force them to be the same. We can construct vectors using the `c()` function. 
+Vectors in R are simply ordered lists of values. These values can be of any type (strings, numerics, Boolean, etc), **but they must all be of the same type, or R will force them to be the same.** We can construct vectors using the `c()` function. 
 
 Let's run through a quick example:
 ```{r}
-string_vector <- c('plant', 'genotype')
-string_vector
+col_names <- c('plant', 'genotype')
+col_names
 ```
 
 ***
@@ -144,20 +149,20 @@ What are the arguments that you can pass to `c()`?
 
 Now we have a vector of strings. We can access the individual elements (the values we put in our vector) using the square bracket operator.
 ```{r}
-string_vector[1]
-string_vector[2]
+col_names[1]
+col_names[2]
 #Note that the indices begin at 1 in R!!!
-string_vector[0]
+col_names[0]
 ```
 
 We can also change elements or add elements to the vector using the bracket operator.
 
 ```{r}
-string_vector[2] <- 'phenotype'
-string_vector[3] <- 'root_length'
-string_vector
-string_vector[4] <- FALSE
-string_vector
+col_names[2] <- 'phenotype'
+col_names[3] <- 'root_length'
+col_names
+col_names[4] <- FALSE
+col_names
 ```
 
 ***
@@ -176,12 +181,12 @@ bools
 
 We can also do mathematical or logical operations on entire vectors.
 ```{r}
-string_vector == FALSE
+col_names == FALSE
 
-another_vector <- c(1, 2, 3, 4, 5)
-6*another_vector
-another_vector^2
-another_vector > 2
+vector <- c(1, 2, 3, 4, 5)
+6*vector
+vector^2
+vector > 2
 ```
 
 
@@ -300,36 +305,41 @@ d <- read.csv(file.choose())
 
 #Data analysis and visualization  
 
-This lesson in Basic statistics focuses and extends on an example originally published in [Brady et al. 2015](https://www.ncbi.nlm.nih.gov/pubmed/26220933). Read through the introduction of this paper and come back when you're at the "ANOVA PROPERLY TESTS GENETIC INTERACTIONS" section.
+This lesson in basic analysis of variance focuses and extends upon an example originally published in [Brady et al. 2015](https://www.ncbi.nlm.nih.gov/pubmed/26220933). Read through the introduction of this paper and come back when you're at the "ANOVA PROPERLY TESTS GENETIC INTERACTIONS" section.
 
 ##ANOVA PROPERLY TESTS GENETIC INTERACTIONS
 
-Let's simulate an experiment in which we want to determine how two genes in a gene family interact to contribute to a particular phenotype. These genes could be redundant or interact in some epistatic manner. To figure this out we will need to measure the phenotype of interest for the two single mutants, the wild type, and the double mutant. 
+As you have read analysis of variance or ANOVA facilitates comparisions between and among treatments, genotypes, and environments as well as interactions between these variables.
 
-First, we will simulate data by drawing quantitative phenotype values from random normal distributions and then compile these random values and associated labels into a data frame. I will pick some means and standard deviations for the normal distributions from thin-air for now. Feel free to come back later and change these values to see how differences in means and standard deviations will affect the outcomes. 
+Let's simulate an experiment in which we want to determine if two genes interact to contribute to a particular phenotype. These genes could be redundant or interact in some epistatic manner. To figure this out we will need to measure the phenotype of interest for the two single mutants, the wild type, and the double mutant. For this example, let's use root length as the phenotype. Suppose we have two mutants in two genes that we suspect have an effect on root length, as well as a double mutant containing mutations in both genes. 
+
+First, we will simulate an experiment by drawing root length values from a random normal distribution for each genotype, and then compile these values we drew into a data frame. We will pick means and standard deviations for the normal distributions from thin-air for now. Feel free to come back later and change these values to see how differences in means and standard deviations will affect the outcomes. 
 ##Experiment 1
 ```{r}
 # Draw 3 measurements from a random normal distribution for each plant line
-WT=rnorm(3, mean=100, sd=10) # WT genotype
-M1=rnorm(3, mean=85, sd=10)  # Single mutant in Gene 1
-M2=rnorm(3, mean=85, sd=10)  # Single mutant in Gene 2
-DM=rnorm(3, mean=70, sd=10)  # Double mutant in Gene 1 and Gene 2
-
-# Create a dataframe with columns for the status of each gene, that this is the first experiment, and the measurement of phenotype 
-# Create a column for the status of gene 1
-# 3 wild-types, 3 single mutants in Gene 1, 3 single mutants in Gene 2, 3 double mutants
-M1G <- c("WT", "WT", "WT", "M1", "M1", "M1", "WT", "WT", "WT", "M1", "M1", "M1")
-# Create a column for the status of gene 2
-M2G <- c("WT", "WT", "WT", "WT", "WT", "WT", "M2", "M2", "M2", "M2", "M2", "M2") 
-Exp <- c("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1")
+WT <- rnorm(n = 3, mean=100, sd=10) # WT genotype
+M1 <- rnorm(n = 3, mean=85, sd=10)  # Single mutant in Gene 1
+M2 <- rnorm(n = 3, mean=85, sd=10)  # Single mutant in Gene 2
+DM <- rnorm(n = 3, mean=70, sd=10)  # Double mutant in Gene 1 and Gene 2
 # Create a column of the simulated phenotype measurements that we randomly drew above
 Phen <- c(WT, M1, M2, DM)
+```
+Now we will create a dataframe with columns for the status of each gene, that this is the first experiment, and the measurement of phenotype. Then we will combine these columns with our root length measurements in a data frame.
+```{r}
+# Create a column for the genotype at gene 1
+# 3 wild-types, 3 single mutants in Gene 1, 3 single mutants in Gene 2, 3 double mutants
+M1G <- c("WT", "WT", "WT", "M1", "M1", "M1", "WT", "WT", "WT", "M1", "M1", "M1")
+# Create a column for the genotype at gene 2
+M2G <- c("WT", "WT", "WT", "WT", "WT", "WT", "M2", "M2", "M2", "M2", "M2", "M2") 
+# Create a column for the repeat of the experiment, as we will be repeating this process several times
+Exp <- c("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1")
+
 Rep1 <- data.frame(Exp,M1G,M2G,Phen)
 Rep1
 ```
 
 Note that the values you drew will be different from those above and different from everyone else.
-Now we also need to convert each of these independent variables from strings to factors.
+Now we also need to convert each of these independent variables from strings to factors, as required by the ANOVA function.
 
 ```{r}
 class(Rep1$M1G)
@@ -341,7 +351,7 @@ Rep1$Exp <- factor(Rep1$Exp)
 
 Now that we have our data frame set up we can visualize our data and test our hypothesis. 
 
-First, let's plot the data to get an idea of what they look like
+First, let's plot these data to get an idea of what they look like
 
 ###Plotting with ggplot2
 
@@ -350,44 +360,108 @@ The `ggplot2` package provides a very powerful and intuitive (once you get the h
 ####Packages
 
 There are three places where R packages are available:  
-1. [CRAN](http://cran.r-project.org/web/packages/) contains a huge variety of general packages,  
+1. [CRAN](http://cran.r-project.org/web/packages/) contains a huge variety of general packages (including ggplot2 and several other packages we will use here),  
 2. [bioConductor](http://bioconductor.org/) contains packages related to high throughput biological (mostly -omics) data,  
 3. Packages in development may be available from code repositories such as [GitHub](http://github.com), [Bitbucket](http://bitbucket.org) or others. 
 
 ```{r, eval= F}
-#install a package from CRAN (if you exclude 'repos' it will give you a list and ask you to select a repository server)
+#install a package from CRAN 
 install.packages('ggplot2')
-#before using the package we must load it into our workspace
-library('ggplot2')
 
-#we will also need the ‘dplyr’,'car' and 'agricolae' packages
-install.packages('plyr')
-library('plyr') 
+
+#we will also need the 'magrittr', ‘dplyr’, 'forcats', 'car', 'agricolae', and 'plyr' packages later on
+install.packages('magrittr')
 install.packages('dplyr')
-library('dplyr') 
+install.packages("forcats")
 install.packages("car")
-library("car")
 install.packages("agricolae")
-library("agricolae")
+install.packages("plyr")
 ```
 
-The 'gg' in `ggplot2` stands for 'grammar of graphics'. This grammar allows us to map data to visual representations in a manner similar to how language maps words to abstract concepts. The grammar of graphics allows precise control over each item in a graph, and also provides convenient defaults.  The `qplot` function uses these default values to make quick plots. Similar to how grammar of language directs our use of nouns, verbs and adjectives, the grammar of graphics directs our use of aesthetics, geometries and layers.
+The 'gg' in `ggplot2` stands for 'grammar of graphics'. This grammar allows us to build  visual representations of data to in a manner similar to how grammar allows us to build sentences to communicate abstract concepts. The grammar of graphics allows precise control over each item in a graph, and also provides convenient defaults.  The `qplot` function uses these default values to make quick plots. Similar to how grammar of language directs our use of nouns, verbs and adjectives, the grammar of graphics directs our use of aesthetics, geometries and layers.
 
 Within the grammar of graphics aesthetics are visual parameters to which you can map a variable. So for example here, `x`, `y` and `color` are aesthetics to which we want to map the variables genotype and phenotype. If we extend the language grammar metaphor, aesthetics are like nouns, you can have several nouns in a sentence. But we also need a verb to make a sentence, right? The verb-equivalents in the grammar of graphics are called geometries. These geometries are the methods of representing data, e.g. bar plots, scatter plots, and box-and-whisker plots. In `ggplot2` these geometries are created using which always begin with `geom_`, so you can type 'geom' into the **Help** pane and see a list of all the possibilities. In `qplot` we just leave off the `geom_` when specifying the `geom` argument
 
 Let's explore this data a bit using the `qplot` function.
 ```{r}
+#before using any package we must load it into our workspace
+library('ggplot2')
 qplot(x = interaction(M1G, M2G), y = Phen, data = Rep1, color = interaction(M1G, M2G), geom = "point")
 ```
 
 ***
 #####???Question???  
-What can we say about this data? Write a quick summary of this graph and formulate a hypothesis. Is one gene contributing more to the phenotype than another? Does the double mutant have a more or less severe phenotype than the individual mutants? Do you think the genes interact to contribute to the phenotype?  
+What can we say about this data? Write a quick summary of this graph and formulate a hypothesis. 
+*answer here*
+
+Is one gene contributing more to the root length phenotype than another? 
+*answer here*
+
+Does the double mutant have a more or less severe phenotype than the individual mutants? 
+*answer here*
+
+Do you think the genes interact to contribute to the phenotype?  
 *answer here*
 
 ***  
 
-Now, let's formulate that hypothesis as a mathematical model. Generally, we know that we have a response variable that we are measuring, that is a function of some set of predictors. 
+OK! Back to our analysis of variance. We want to ask whether or not the root length values for  wildtype plants, the single mutants in each gene, and the double mutant all came from the same distribution. To ask this question analysis of variance, as the name implies, compares different variances in our experiment. **ANOVA compares the variance between the groups we are comparing to the variance within each group. So in this case we want to compare the phenotypic variance between the means of the WT and each mutant to the phenotypic variance within each of these groups. Another way of thinking about this is that we are comparing the effect of the variable that separates the groups, to the precision of our measurment of this effect.** The variance between groups is called the systematic variance and the variance within groups is called the error variance. 
+
+$$\frac{variance\ between}{variance\ within} = \frac{systematic\ variance}{error\ variance}$$ 
+
+
+Let's visually explore this ANOVA idea a bit.
+For each genotype we can calculate the mean phenotype and the variance around the mean. These is the "within" group variance. We'll add means and standard error to this plot using the `stat_summary` function to represent "within" variance. We can use the `alpha` aesthetic to change the saturation of the colors to make the mean stand out a bit more and hide the raw data somewhat. We can also use the `geom` argument `jitter` in the qplot function to prevent the mean and standard error from being plotted overtop of the raw data. 
+```{r}
+qplot(interaction(M1G, M2G), y = Phen, data = Rep1, color = interaction(M1G, M2G), alpha = 0.7, geom = "jitter") + stat_summary(fun.data = "mean_se", alpha = 1)
+```
+
+The "between" group mean and variance is calculated using the mean for each group. Here, we'll split up our data frame `Rep1` into groups by the experiment, genotype at gene1, and genotype at gene2. Then we will calculate the mean for each of these groups. To do this we will use the `dplyr` package. We will also use the pipe function `%>%` from the `magrittr` package. The pipe function passes the result of the code on the left side to the first argument of the code on the right side. 
+
+```{r}
+# Load the necessary packages 
+library(dplyr)
+library(magrittr)
+# Take the Rep1 dataset and split it into groups
+Rep1 %>% group_by(Exp, M1G, M2G) %>%
+# Note that we don't need to use quotes with functions from the dplyr package
+# Technically each of Exp, M1G, and M2G are passed to the "..." argument of the group_by function
+# We added a pipe function to the end of this line so we can pass these groups to the `summarise` function to calculation the mean of each group
+# We can then use the right arrow to assign this new data frame of the means to an object
+  summarise(Phen = mean(Phen)) -> means
+means$M1G <- "mean"
+means$M2G <- "mean"
+# Create a new data frame with the mean rows combined with our data
+Rep1means <- bind_rows(Rep1, means)
+qplot(x = interaction(M1G, M2G), y = Phen, data = Rep1means, alpha = 0.7, color = interaction(M1G, M2G), geom = "jitter") + stat_summary(fun.data = "mean_se", alpha = 1)
+```
+
+So now the mean.mean column contains four points representing the means of the four groups. The mean of these means, called the grand mean, is represented by the large point and the variance of the group means about the grand mean represents the between groups variance, but here we've used the `mean_se` function to calculate standard error. The true value of the variance is the difference between each data point and the mean. We can write our own function to calculate the true variance. Don't get bogged down in the code here (unless you want to :), just pay attention to the graphs. We can also use the `forcats` package to move the mean.mean column to the end of the graph and relabel each of the columns. In general the forcats package has functions that allow us to arrange factors (forcats is a rearrangement of factor, haha!). Let's also clean up the axis labels by adding `labs` to the plot. 
+
+
+```{r}
+library(forcats)
+qplot(x = fct_recode(fct_relevel(fct_rev(interaction(M1G, M2G)), "mean.mean", after = Inf), double = "M1.M2", mut2 = "WT.M2", mut1 = "M1.WT", WT = "WT.WT", grand_means = "mean.mean"), y = Phen, data = Rep1means, alpha = 0.7, color = interaction(M1G, M2G), geom = "jitter") + 
+  stat_summary(fun.data = function(y){
+    data.frame(
+      ymin = mean(y) - sum(mean(y) - y[which(y<mean(y))]),
+      y = mean(y),
+      ymax = mean(y) + sum(y[which(y>mean(y))] - mean(y)))
+    }, alpha = 1) + 
+  labs(x = "genotype", y = "root length (mm)")
+```
+Now we have a pretty graph showing the mean and variance for each genotype (the first four columns) as well as the grand mean and variance (the last column).
+
+***
+#####???Question???  
+How does the variance in each group compare to the variance in the grand mean?
+*answer here*
+
+***
+
+Now, let's formulate that hypothesis as a mathematical model so that we can perform the ANOVA analysis in R. 
+
+Generally, we know that we have a response variable that we are measuring, that is a function of some set of predictors. 
 $$response \sim f(predictors)$$
 The ~ here means that this is a hypothetical or approximate relationship between the response and predictors as there are certainly other factors that we cannot predict or error that we cannot account for in our model.
 
@@ -401,40 +475,20 @@ What are the independent or predictor variables of that response? These are typi
 
 ***   
 
-
 $$phenotype \sim f(Gene 1, Gene2)$$
 Expanding this function a bit, we can assess each individual genes functional contribution to the phenotype as well as the extent to which they interact (or interfere) with one another. Therefore, our final model that we would like to test is
 $$Phen \sim M1G + M2G + M1G:M2G$$
-This is called a general linear model. This should remind you of a linear regression analysis from way back in Algebra II. We have written out an equation that we think should fit our data. ANOVA assigns the deviation or error between our model and our data into groups based on the predictors. It does this by comparing the variance between groups of predictors to the variance within groups of predictors. So in this case we want to compare the phenotypic variance between the WT and mutant groups for each gene to the phenotypic variance within the groups. The variance between groups is called the systematic variance and the variance within groups is called the error variance. 
+This is called a general linear model. This should remind you of a linear regression analysis from way back in Algebra II. We have written out an equation that we think should fit our data. ANOVA assigns the deviation or error between our model and our data into groups based on the predictors. It does this by comparing the variance between groups of predictors to the variance within groups of predictors. 
 
-Let's visually explore this ANOVA idea a bit.
-For each genotype we can calculate the mean phenotype and the variance around the mean. This is the "within" group variance. We'll add this to the plot using the `stat_summary` function. We can use the `alpha` aesthetic to change the saturation of the colors to make the mean stand out a bit more. We can also use the 
-```{r}
-
-qplot(interaction(M1G, M2G), y = Phen, data = Rep1, color = interaction(M1G, M2G), alpha = 0.7) + stat_summary(fun.data = "mean_se", alpha = 1)
-```
-
-The "between" group mean and variance is calculated using the mean for each group.
-
-```{r}
-means <- ddply(.data = Rep1, .variables = .(Exp, M1G,M2G), summarize, Phen = mean(Phen))
-means$M1G <- "mean"
-means$M2G <- "mean"
-Rep1means <- rbind(Rep1, means)
-qplot(x = interaction(M1G, M2G), y = Phen, data = Rep1means, alpha = 0.7, color = interaction(M1G, M2G)) + stat_summary(fun.data = "mean_se", alpha = 1)
-```
-
-So each of the first 4 columns represent within group variance, and the fifth column contains the Grand Mean of the means of the first four columns and the variance of the group means about the Grand Mean, representing the between groups variance.
-
-Now let's set this up in the ANOVA framework in R.
+Now that we have our model formulated, let's set this up in the ANOVA framework in R to finally get an answer to our question: "Are these genes interacting to regulate to root length?"
 ```{r}
 ?aov
 Exp1 <- aov(Phen ~ M1G + M2G + M1G:M2G , data=Rep1) 
 summary(Exp1)
 ```
-So what does this summary tell us? `Sum Sq` stands for sum of squares. This is the sum of the squared deviation between the groups of the variable. `Mean Sq` is `Sum Sq` divided by the degrees of freedom or `Df` in that variable and is essentially the variance of that variable. The degrees of freedom are the number of groups for that variable minus one. `Residuals` is the within groups variance. 
+So what does this summary tell us? `Sum Sq` stands for sum of squares. This is the sum of the squared deviation between the groups of the variable. `Mean Sq` is `Sum Sq` divided by the degrees of freedom or `Df` in that variable and is essentially the variance of that variable. The degrees of freedom are the number of groups for that variable minus one. `Residuals` is the total within groups variance. 
 
-Now for the comparisons, `F value` is the ratio of the `Mean Sq` of the variable over the `Residuals`. So the larger the `F value` the more the variance between the predictor levels dominates the variance within predictor levels (i.e. the between treatment variance is greater than the sampling variance). So for our experiment a gene with an F value much greater than one indicates that the variance among genotypes is much greater than the variance within genotypes. The Pr(>F), is the probability that the data are consistent with the null hypothesis, which in this case is that the variance between genotypes of gene is not different from the variance within the genotypes. This is referred to as the p-value. So if this p-value is less than the confidence threshold you have set for your experiment (frequently 0.05), you can reject the null hypothesis and conclude that the gene has a significant effect on the phenotype.
+Now for the comparison of the variances that we've been talking about all along. The `F value` is the ratio of the `Mean Sq` of the variable over the `Residuals`. So the larger the `F value` the more the variance between the predictor levels dominates the variance within predictor levels (i.e. the between treatment variance is greater than the sampling variance). So for our experiment a gene with an F value much greater than one indicates that the variance among genotypes is much greater than the variance within genotypes. The Pr(>F), is the probability that the data are consistent with the null hypothesis, which in this case is that the variance between genotypes of gene is not different from the variance within the genotypes. This is referred to as the p-value. So if this p-value is less than the confidence threshold you have set for your experiment (frequently 0.05), you can reject the null hypothesis and conclude that the gene has a significant effect on the phenotype.
 
 However, **we cannot accept the null hypothesis** for those independent variables with p-values greater than our confidence threshold!!! We can only fail to reject the null, meaning we can only say that we don't have enough data to detect an effect on the phenotype. 
 
@@ -445,10 +499,10 @@ Let's repeat the experiment!
 ##Experiment 2
 
 ```{r}
-WT=rnorm(3, mean=100, sd=10)
-M1=rnorm(3, mean=85, sd=10)
-M2=rnorm(3, mean=85, sd=10)
-DM=rnorm(3, mean=70, sd=10)
+WT <- rnorm(3, mean=100, sd=10)
+M1 <- rnorm(3, mean=85, sd=10)
+M2 <- rnorm(3, mean=85, sd=10)
+DM <- rnorm(3, mean=70, sd=10)
 Exp <- c("2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2") 
 Phen <- c(WT, M1, M2, DM)
 
@@ -464,17 +518,23 @@ ANOVA analysis for trial 2
 Exp2 <- aov(Phen ~ M1G + M2G + M1G:M2G , data=Rep2) 
 summary(Exp2)
 ```
+
+***
+#####???Question???  
 What can you conclude from this experiment?
+*answer here*
+
+***
 
 Because all good things come in threes, and the conclusions likely differ between experiments, let's repeat the experiment a third time. 
 
 ##Experiment 3
 
 ```{r}
-WT=rnorm(3, mean=100, sd=10)
-M1=rnorm(3, mean=85, sd=10)
-M2=rnorm(3, mean=85, sd=10)
-DM=rnorm(3, mean=70, sd=10)
+WT <- rnorm(3, mean=100, sd=10)
+M1 <- rnorm(3, mean=85, sd=10)
+M2 <- rnorm(3, mean=85, sd=10)
+DM <- rnorm(3, mean=70, sd=10)
 Exp <- c("3", "3", "3", "3", "3", "3", "3", "3", "3", "3", "3", "3") 
 Phen <- c(WT, M1, M2, DM)
 
@@ -503,33 +563,49 @@ summary(Full)
 
 ### Advanced plotting with ggplot2
 
-Let's plot the full data set and see if the ANOVA results match our visual expectations. This time instead of using `qplot` we'll use the more flexible and powerful `ggplot` function. To do this we create a `ggplot` element that specifies the data and aesthetics. This sets up the axes and legends for the graph. Then we can add geometries to this ggplot element to layer the data and summaries of the data onto the plot.
+Let's plot the full data set and see if the ANOVA results match our visual expectations. This time instead of using `qplot` we'll use the more flexible and powerful `ggplot` function. To do this we create a `ggplot` element that specifies the data and aesthetic mapping. This sets up which columns of the dataset will be mapped to the coordinate axes and colors, shapes, linetypes or other aesthetic element of the graph. Then we can add geometries to this ggplot object to layer the data onto the plot. We can also add the summaries of the data onto the plot as before.
 
 ```{r}
-ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_point(alpha = 0.7) + stat_summary(fun.data = "mean_se", alpha = 1)
+ggplot(data = AllExp, mapping = aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_point(alpha = 0.7, position = "jitter") + stat_summary(fun.data = "mean_se", alpha = 1)
 ```
-Let's try plotting this as a boxplot as well.
+
+Notice how we can alter the aesthetics of different geoms.
+Let's try plotting this as a boxplot as well. All we have to do is specify a a different geom. 
 
 ```{r}
 ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot()
 ```
 
-Hopefully in the end you will be able to conclude that both gene1 and gene2 have significant effects on the phenotype, but that there is not evidence to suggest that the interaction between the two has a significant effect. Also, we hope the experimental trial doesn't have an effect. 
+In the end you will likely be able to conclude that both gene1 and gene2 have significant effects on the phenotype, but that there is not evidence to suggest that there is a significant interaction between the two genes. Also, the experimental trial most likely does not have an effect. This is all dependent on the mean and variance of the distributions we set in the beginning. 
 
-But what if the experimental trial did have an effect? How could we figure out which trial is different? 
+```{r, eval=FALSE}
+# Draw 3 measurements from a random normal distribution for each plant line
+WT <- rnorm(n = 3, mean=100, sd=10) # WT genotype
+M1 <- rnorm(n = 3, mean=85, sd=10)  # Single mutant in Gene 1
+M2 <- rnorm(n = 3, mean=85, sd=10)  # Single mutant in Gene 2
+DM <- rnorm(n = 3, mean=70, sd=10)  # Double mutant in Gene 1 and Gene 2
+```
 
-## Post-hoc testing
+***
+#####???Question???
+What value of the mean of the double mutant distribution would be likely to result in a significant interaction between the two genes?
+*answer here*
 
-While the ANOVA summary tells us which independent variables explain a significant amount of the experimental variant, it doesn't allow us to compare the levels of the independent variables. How can we tell if the mutant in gene 1 has a different phenotype from the mutant in gene 2?
+***
 
-To compare group or level means and variances we will need to do what is called a *post hoc* test. One of the most commonly used post hoc tests is Tukey's Honest Significant Difference test. This compares all of the group means in a pairwise manner and corrects the confidence threshold since we are making multiple comparisons. 
+## Post hoc testing
+
+While the ANOVA summary tells us which independent variables explain a significant amount of variance in the experiment, it doesn't allow us to compare the levels of the independent variables. How can we tell if the mutant in gene 1 has a different phenotype from the mutant in gene 2?
+What if the experimental trial did have an effect? How could we figure out which trial is different from the others? 
+
+To compare group or level means and variances and answer these questions we will need to do what is called a *post hoc* test, following our ANOVA analysis. One of the most commonly used post hoc tests is Tukey's Honest Significant Difference test. This compares all of the group means in a pairwise manner and corrects the confidence threshold since we are making multiple comparisons. We do this test on our ANOVA object `Full` from above.
 
 ```{r}
 tuk <- TukeyHSD(Full)
 tuk
 ```
 
-So more than likely, you will see for your full experiment with 3 replications that WT is significantly different from M1 and M2. This is shown in the first two sections of the `TukeyHSD` summary which compare the levels (wildtype vs mutant) of the factors M1G and M2G. The `p adj` is the p-value (adjusted for the multiple comparisons) resulting from the *t*-test comparing the two groups. So if the `p adj` value is less than the accepted confidence level (typically 0.05), then the two compared groups are significantly different from one another. Hopefully, each replication of the experiment will not be significantly different from the others, i.e. the adjusted p-values will be greater than 0.05. We can visualize the differences in the means by plotting the `TukeyHSD` results. This uses base R plotting which is much less user-friendly than ggplot. Don't get bogged down in the code here, just pay attention to the graphs.
+So more than likely, you will see for your full experiment with 3 replications that WT is significantly different from M1 and M2. This is shown in the first two sections of the `TukeyHSD` summary which compare the levels (wildtype vs mutant) of the factors M1G and M2G. The `p adj` is the p-value (adjusted for the multiple comparisons) resulting from the equivalent of a *t*-test comparing the two groups. So if the `p adj` value is less than the accepted confidence level (typically 0.05), then the two compared groups are significantly different from one another. Hopefully, each replication of the experiment will not be significantly different from the others, i.e. the adjusted p-values will be greater than 0.05. We can visualize the differences in the means by plotting the `TukeyHSD` results. This uses base R plotting which is much less user-friendly than ggplot. Don't get bogged down in the code here, just pay attention to the graphs.
 
 ```{r}
 par(mfrow = c(2,2), cex = 0.65)
@@ -547,12 +623,28 @@ HSD.test(y = Full, trt = c("M1G","M2G"), console = TRUE)
 Finally we can add these groups to our graph and make the titles a bit more understandable. We'll add a text geometry to add the post hoc comparisons. Another tricky point is that we have to make sure that the x-axis labels match between our data and our HSD test. To do this we use `gsub` to swap out the colons for periods. 
 ```{r}
 HSD.groups <- HSD.test(y = Full, trt = c("M1G","M2G"))$groups
-ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot() + geom_text(data = HSD.groups, mapping = aes(x = gsub(":", ".", trt), y = means, label = M), color = "black")
+HSD.groups$trt <- row.names(HSD.groups)
+ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot() + geom_text(data = HSD.groups, mapping = aes(x = gsub(":", ".", trt), y = max(Phen) + 20, label = groups), color = "black")
 ```
 
-Now let's change the axis titles. We'll also use a new theme to clean up the plot a bit and get rid of the legend. 
+Now let's clean this up a bit by changing the axis titles and labels. We'll use `forcats` functions like before but this time with pipes to make the process a little more readable. We'll also use a new theme to clean up the plot a bit and get rid of the legend. 
 ```{r}
-ggplot(data = AllExp, aes(x = interaction(M1G, M2G), y = Phen, color = interaction(M1G, M2G))) + geom_boxplot() + geom_text(data = HSD.groups, mapping = aes(x = gsub(":", ".", trt), y = means, label = M), color = "black") + xlab("genotype (gene1.gene2)") + ylab("root length (mm)") + theme_classic() + theme(legend.position="none")
+# First we will use mutate from `dplyr` to add a column for the full genotype
+AllExp %<>% mutate(genotype = interaction(M1G, M2G))
+# %<>% is a two way pipe that passes AllExp as the first argument to mutate and then assigns the result back to AllExp
+
+# Now to recode genotype we will unfurl the nested forcats function using pipes
+AllExp$genotype %<>%
+  fct_rev() %>%
+  fct_recode(double_mutant = "M1.M2", mut2 = "WT.M2", 
+             mut1 = "M1.WT", WT = "WT.WT")
+
+HSD.groups$trt %<>%
+  fct_rev() %>%
+  fct_recode(double_mutant = "M1:M2", mut2 = "WT:M2", 
+             mut1 = "M1:WT", WT = "WT:WT")
+
+ggplot(data = AllExp, aes(x = genotype, y = Phen, color = genotype)) + geom_boxplot() + geom_text(data = HSD.groups, mapping = aes(x = trt, y = max(Phen) + 20, label = groups), color = "black") + xlab("genotype") + ylab("root length (mm)") + theme_classic() + theme(legend.position="none")
 ```
 
 ## Assumptions of ANOVA
@@ -562,17 +654,18 @@ Before making any final conclusions we should check and make sure that our data 
 How do you test these assumptions? 
 
 ### Normality
-We can visualize deviations from normality for each group of measurements using `qqnorm`. The tricky thing is that we need to split up our dataframe by groups.
+We can visualize deviations from normality for each group of measurements using `qqnorm`. The tricky thing is that we need to split up our dataframe by groups. To do this we will use the `plyr` package. 
 
 ```{r}
+library(plyr)
 d_ply(.data = AllExp, .variables = .(M1G, M2G), .fun = summarise, qqnorm(Phen))
-# If any of these strongly deviate from a straight line then there may be a violation of normality
+# If there is strong deviation from a straight line then there may be a violation of normality
 ```
 
 We can run the Shapiro-Wilk test to test for deviations from normality. 
 
 ```{r}
-ddply(.data = AllExp, .variables = .(M1G, M2G), .fun = summarise, p_value = shapiro.test(Phen)$p.value)
+AllExp %>% group_by(genotype) %>% summarise(p_value = shapiro.test(Phen)$p.value)
 ```
 A significant test indicates that we can reject the null hypothesis that the data is normally distributed. 
 
